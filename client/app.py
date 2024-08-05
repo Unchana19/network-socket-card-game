@@ -1,8 +1,5 @@
 from socket import *
 import threading
-import random
-
-cards_list = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
 def receive_messages(clientSocket):
     while True:
@@ -11,10 +8,12 @@ def receive_messages(clientSocket):
             if message:
                 print(f"Received from server: {message}")
                 status_code, status_phrase, msg = parse_message(message)
-                if status_code == 300 and status_phrase == "Opponent Cards":
-                    print(f"Opponent's cards: {msg}")
+                if status_code == 300 and status_phrase == "Your Cards":
+                    print(f"Your cards: {msg}\n")
+                elif status_code == 300 and status_phrase == "Opponent Cards":
+                    print(f"Opponent's cards: {msg}\n")
                 elif status_code == 300 and status_phrase == "Game Result":
-                    print(msg)
+                    print(f"\n{msg}!\n")
             else:
                 break
         except Exception as e:
@@ -33,9 +32,6 @@ def parse_message(message):
         print(f"Parsing error: {e}")
         return 400, "Bad Request", "Invalid message format"
 
-def draw_cards():
-    return [random.choice(cards_list) for _ in range(2)]
-
 serverName = "localhost"
 serverPort = 12000
 clientSocket = socket(AF_INET, SOCK_STREAM)
@@ -44,7 +40,15 @@ clientSocket.connect((serverName, serverPort))
 threading.Thread(target=receive_messages, args=(clientSocket,)).start()
 
 while True:
-    input("Press Enter to draw cards")
-    cards = draw_cards()
-    print(f"You drew cards: {cards}")
-    clientSocket.send(f"200 OK : {cards[0]} {cards[1]}".encode())
+    input("Press Enter to draw initial cards...\n")
+    clientSocket.send("200 OK : Draw cards".encode())
+    
+    while True:
+        choice = input("Do you want to draw an additional card? (y/n): \n").strip().lower()
+        if choice in ['y', 'n']:
+            break
+    
+    if choice == 'y':
+        clientSocket.send("200 OK : Draw additional card".encode())
+    else:
+        clientSocket.send("200 OK : No additional card".encode())

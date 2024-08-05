@@ -1,5 +1,6 @@
 from socket import *
 import threading
+import random
 
 serverPort = 12000
 serverSocket = socket(AF_INET, SOCK_STREAM)
@@ -9,6 +10,10 @@ print("The server is ready to receive")
 
 clients = {}
 cards = {}
+additional_cards = {}
+suits = ["hearts", "diamonds", "spades", "clubs"]
+ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+deck = [f"{rank} {suit}" for rank in ranks for suit in suits]
 
 def handle_client(connectionSocket, addr):
     client_id = addr[1]
@@ -20,9 +25,26 @@ def handle_client(connectionSocket, addr):
             message = connectionSocket.recv(1024).decode()
             if message:
                 status_code, status_phrase, msg = parse_message(message)
-                if status_code == 200:
-                    cards[client_id] = parse_cards(msg)
+                if status_code == 200 and status_phrase == "OK" and msg == "Draw cards":
+                    client_cards = draw_cards(2)
+                    cards[client_id] = client_cards
+                    print(f"Client {client_id} drew cards: {client_cards}")
+                    connectionSocket.send(f"300 Your Cards : [ {' | '.join(client_cards)} ]".encode())
                     if len(cards) == 2:
+                        if check_natural_winner():
+                            compare_cards()
+                        else:
+                            wait_for_additional_draws()
+                elif status_code == 200 and status_phrase == "OK" and msg == "Draw additional card":
+                    additional_card = draw_cards(1)[0]
+                    additional_cards[client_id] = additional_card
+                    cards[client_id].append(additional_card)
+                    connectionSocket.send(f"300 Your Cards : [ {' | '.join(cards[client_id])} ]".encode())
+                    if len(additional_cards) == 2:
+                        compare_cards()
+                elif status_code == 200 and status_phrase == "OK" and msg == "No additional card":
+                    additional_cards[client_id] = None
+                    if len(additional_cards) == 2:
                         compare_cards()
                 else:
                     connectionSocket.send(f"{status_code} {status_phrase} : {msg}".encode())
@@ -51,23 +73,38 @@ def parse_message(message):
         print(f"Parsing error: {e}")
         return 400, "Bad Request", "Invalid message format"
 
-def parse_cards(msg):
-    return [card for card in msg.split()]
+def draw_cards(num_cards):
+    global deck
+    if len(deck) < num_cards:
+        print("Not enough cards in the deck. Reshuffling.")
+        deck = [f"{rank} {suit}" for rank in ranks for suit in suits]
+    return [deck.pop(random.randint(0, len(deck) - 1)) for _ in range(num_cards)]
 
 def cal_card(card):
-    match card:
+    point = card.split(" ")
+    rank = point[0]
+    match rank:
         case "A":
             return 1
         case "J" | "Q" | "K":
             return 0
         case _:
-            return int(card)
+            return int(rank)
 
 def sum_cards(cards):
-    card1 = cal_card(cards[0])
-    card2 = cal_card(cards[1])
-    return (card1 + card2) % 10
+    return sum(cal_card(card) for card in cards) % 10
 
+def check_natural_winner():
+    if len(cards) == 2:
+        for client_id, client_cards in cards.items():
+            total = sum_cards(client_cards)
+            if total == 8 or total == 9:
+                return True
+    return False
+
+def wait_for_additional_draws():
+    for client_id, client_socket in clients.items():
+        client_socket.send("300 Game Status : Waiting for additional draws".encode())
 
 def compare_cards():
     if len(cards) == 2:
@@ -85,11 +122,12 @@ def compare_cards():
             send_result(client1, "It's a tie", client2, "It's a tie")
 
         cards.clear()
+        additional_cards.clear()
 
 def send_opponent_cards(client_id, opponent_cards):
     client_socket = clients[client_id]
     try:
-        client_socket.send(f"300 Opponent Cards : [{' '.join(map(str, opponent_cards))}]".encode())
+        client_socket.send(f"300 Opponent Cards : [ {' | '.join(opponent_cards)} ]".encode())
     except Exception as e:
         print(f"Sending opponent cards error: {e}")
 
@@ -97,8 +135,8 @@ def send_result(winner_id, winner_msg, loser_id, loser_msg):
     winner_socket = clients[winner_id]
     loser_socket = clients[loser_id]
     try:
-        winner_socket.send(f"300 Game Result : {winner_msg}".encode())
-        loser_socket.send(f"300 Game Result : {loser_msg}".encode())
+        winner_socket.send(f"\n300 Game Result : {winner_msg}!\n".encode())
+        loser_socket.send(f"\n300 Game Result : {loser_msg}!\n".encode())
     except Exception as e:
         print(f"Sending result error: {e}")
 
