@@ -31,3 +31,6 @@ cd client
 python app.py
 ```
 
+## Docs
+
+![docs](doc.pdf)
