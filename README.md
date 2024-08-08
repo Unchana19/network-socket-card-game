@@ -31,7 +31,7 @@ cd client
 python app.py
 ```
 
-[![Watch the video](https://img.youtube.com/vi/T1gMDYOhHhs/maxresdefault.jpg)](https://youtu.be/T1gMDYOhHhs)
+[![Watch the video](https://img.youtube.com/vi/tO2bviOAyBAs/maxresdefault.jpg)](https://youtu.be/tO2bviOAyBA)
 
 ## Docs
 
