@@ -13,7 +13,9 @@ def receive_messages(clientSocket):
                 elif status_code == 300 and status_phrase == "Opponent Cards":
                     print(f"Opponent's cards: {msg}\n")
                 elif status_code == 300 and status_phrase == "Game Result":
-                    print(f"\n{msg}!\n")
+                    print(f"{msg}\n")
+                elif status_code == 300 and status_phrase == "Game Status":
+                    print(f"Game Status: {msg}\n")
             else:
                 break
         except Exception as e:
@@ -41,14 +43,20 @@ threading.Thread(target=receive_messages, args=(clientSocket,)).start()
 
 while True:
     input("Press Enter to draw initial cards...\n")
-    clientSocket.send("200 OK : Draw cards".encode())
+    message = "200 OK : Draw cards"
+    print(f"Sending to server: {message}")
+    clientSocket.send(message.encode())
     
     while True:
-        choice = input("Do you want to draw an additional card? (y/n): \n").strip().lower()
+        choice = input("Do you want to draw an additional card? (y/n): ").strip().lower()
         if choice in ['y', 'n']:
             break
     
     if choice == 'y':
-        clientSocket.send("200 OK : Draw additional card".encode())
+        message = "200 OK : Draw additional card"
+        print(f"Sending to server: {message}")
+        clientSocket.send(message.encode())
     else:
-        clientSocket.send("200 OK : No additional card".encode())
+        message = "200 OK : No additional card"
+        print(f"Sending to server: {message}")
+        clientSocket.send(message.encode())
