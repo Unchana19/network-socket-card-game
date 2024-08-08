@@ -35,4 +35,4 @@ python app.py
 
 ## Docs
 
-![docs](./doc.pdf)
+xfun::embed_file("doc.pdf")
