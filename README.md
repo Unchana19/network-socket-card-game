@@ -32,3 +32,7 @@ python app.py
 ```
 
 [![Watch the video](https://img.youtube.com/vi/T1gMDYOhHhs/maxresdefault.jpg)](https://youtu.be/T1gMDYOhHhs)
+
+## Docs
+
+![doc](https://github.com/Unchana19/network-socket-card-game/blob/master/doc.png?raw=true)
